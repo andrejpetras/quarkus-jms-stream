@@ -1,19 +1,15 @@
-package io.smallrye.reactive.messaging.jms;
+package org.lorislab.quarkus.reactive.jms;
 
+import java.lang.IllegalStateException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.jms.Destination;
-import javax.jms.IllegalStateRuntimeException;
-import javax.jms.JMSConsumer;
-import javax.jms.JMSContext;
-import javax.jms.Message;
-import javax.jms.Topic;
+import javax.jms.*;
+import javax.json.bind.Jsonb;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
@@ -28,11 +24,11 @@ import io.smallrye.mutiny.helpers.Subscriptions;
 class JmsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSource.class);
-    private final PublisherBuilder<IncomingJmsMessage<?>> source;
+    private final PublisherBuilder<InputJmsMessage<?>> source;
 
     private final JmsPublisher publisher;
 
-    JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, ObjectMapper json, Executor executor) {
+    JmsSource(JMSContext context, JmsConnectorIncomingConfiguration config, Jsonb json, Executor executor) {
         String name = config.getDestination().orElseGet(config::getChannel);
         String selector = config.getSelector().orElse(null);
         boolean nolocal = config.getNoLocal();
@@ -53,13 +49,12 @@ class JmsSource {
 
         publisher = new JmsPublisher(consumer);
 
-        boolean transaction = config.getTransactionGroup().isPresent();
         if (!broadcast) {
-            source = ReactiveStreams.fromPublisher(publisher).map(m -> new IncomingJmsMessage<>(transaction, m, executor, json));
+            source = ReactiveStreams.fromPublisher(publisher).map(m -> new InputJmsMessage<>(context, m, executor, json));
         } else {
             source = ReactiveStreams.fromPublisher(
                     Multi.createFrom().publisher(publisher)
-                            .map(m -> new IncomingJmsMessage<>(transaction, m, executor, json))
+                            .map(m -> new InputJmsMessage<>(context, m, executor, json))
                             .broadcast().toAllSubscribers());
         }
     }
@@ -83,11 +78,10 @@ class JmsSource {
 
     }
 
-    PublisherBuilder<IncomingJmsMessage<?>> getSource() {
+    PublisherBuilder<InputJmsMessage<?>> getSource() {
         return source;
     }
 
-    @SuppressWarnings("PublisherImplementation")
     private static class JmsPublisher implements Publisher<Message>, Subscription {
 
         private final AtomicLong requests = new AtomicLong();
@@ -180,4 +174,6 @@ class JmsSource {
             }
         }
     }
+
+
 }

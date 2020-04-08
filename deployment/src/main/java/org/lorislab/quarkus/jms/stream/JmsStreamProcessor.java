@@ -7,6 +7,6 @@ public class JmsStreamProcessor {
 
     @BuildStep
     FeatureBuildItem feature() {
-        return new FeatureBuildItem("jms-stream");
+        return new FeatureBuildItem("lorislab-jms");
     }
 }

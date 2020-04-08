@@ -1,0 +1,11 @@
+---
+name: "Lorislab JMS stream"
+metadata:
+  short-name: "jms"
+  keywords:
+    - "jms"
+    - "reactive-jms"
+  guide: "https://lorislab.org/quarkus/jms"
+  categories:
+    - "messaging"
+  status: "preview"
